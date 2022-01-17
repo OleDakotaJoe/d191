@@ -2,7 +2,7 @@
 
 ## Business Problem
 
-As a stakeholder or a data analyst in the DVD Rental business, it could prove to be highly valuable to have a convenient way to aggregate a report of all active rentals, as well as a summary of all active rentals. As such, a functionality to generate a report which extracts this data from the existing, live, production `dvd_rental` database has been implemented.
+As a stakeholder or a data analyst in the DVD Rental Business, it could prove to be highly valuable to have a convenient way to aggregate a report of all active rentals, as well as a summary of all active rentals. DVD rental companies have a need to find all active rentals by customer and by store, for inventory purposes and for tracking late rentals. Additionaly, DVD rental companies have a need to not lend out too many DVD's to any one customer, so the summary will be used to aggregate a quantity of DVD rentals, grouped by customer. Customer information will also be stored in the `active_rentals_summary` table for convenient retrieval. As such, a functionality to generate a report which extracts this data from the existing, live, production `dvd_rental` database has been implemented.
 
 ## Business Reports
 
@@ -14,6 +14,9 @@ The `active_rentals_detail` report will be comprised of data from many tables in
 In order to meet the businesses' needs, this table will contain the following columns:
 
 - rental_id
+- film_title
+- inventory_id
+- due_date
 -
 
 ### `active_rentals_summary`
