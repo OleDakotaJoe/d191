@@ -12,10 +12,6 @@ Two reports have been made available, `active_rentals_detail` and `active_rental
 
 The `active_rentals_detail` report will be comprised of data from many tables in the `dvd_rentals` database.
 
-#### Data sources
-
-The following tables and fields be used to build out the `active_rentals_detail`:
-
 - `rental`
   - `rental_id`
   - `rental_date`
@@ -25,6 +21,7 @@ The following tables and fields be used to build out the `active_rentals_detail`
 - `inventory`
   - `inventory_id`
   - `film_id`
+  - `store_id`
 - `film`
   - `film_id`
   - `title`
@@ -99,10 +96,6 @@ The most prevalent use case for the `active_rentals_summary` is to get the quant
 A stored procedure, `active_rentals_refresh`, will be used for extracting, transforming and loading data into the appropriate tables in the database. This procedure will truncate the tables, clearing them of any potentially stale data, then will extract data from appropriate tables, and load it into the `active_rentals_detail` and `active_rentals_summary` tables.
 
 This procedure should be ran nightly, after close of business, so that data is up to date in the morning, for any stores which need to access it. Additionally, the procedure can be ran, as needed, in the case of alleged discrepancies in the accuracy of data at the time of sale (rental). Any sort of automation tool could be used, whether that be Windows task scheduler, or even a simple java or python application could be used to refresh the data nightly.
-
-C. Write a SQL query that will extract the raw data needed for the Detailed section of your report from the source database and verify the data’s accuracy.
-
-D. Write code for function(s) that perform the transformation(s) you identified in part A4.
 
 E. Write a SQL code that creates a trigger on the detailed table of the report that will continually update the summary table as data is added to the detailed table.
 

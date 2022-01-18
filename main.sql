@@ -1,41 +1,151 @@
 -- B, create tables
-CREATE TABLE active_rentals_detail(
+-- B.detailed
+CREATE TABLE IF NOT EXISTS public.active_rentals_detail(
     rental_id INT NOT NULL PRIMARY KEY,
-    rental_date DATE NOT NULL,
+    rental_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     rental_duration INT NOT NULL,
     film_title VARCHAR(255),
     inventory_id INT NOT NULL,
-    due_date DATE NOT NULL,
+    due_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     customer_id INT NOT NULL,
-    customer_full_name VARCHAR(512),
-    customer_email VARCHAR(255),
-    customer_phone VARCHAR(255),
+    customer_full_name VARCHAR(92),
+    customer_email VARCHAR(50),
+    customer_phone VARCHAR(20),
     store_id INT NOT NULL,
-    last_updated DATE NOT NULL,
+    last_updated TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
     FOREIGN KEY (inventory_id) REFERENCES inventory(inventory_id) ON DELETE NO ACTION,
     FOREIGN KEY (customer_id) REFERENCES customer(customer_id) ON DELETE NO ACTION,
     FOREIGN KEY (store_id) REFERENCES store(store_id) ON DELETE NO ACTION,
     FOREIGN KEY (rental_id) REFERENCES rental(rental_id) ON DELETE NO ACTION
 );
+DROP TRIGGER IF EXISTS last_updated ON public.active_rentals_detail;
+CREATE TRIGGER last_updated
+    BEFORE UPDATE 
+    ON public.active_rentals_detail
+    FOR EACH ROW
+    EXECUTE FUNCTION public.last_updated();
 
-CREATE TABLE active_rentals_summary(
+-- B.summary.update-trigger
+CREATE OR REPLACE FUNCTION public.populate_summary_active_rentals_data()
+    RETURNS TRIGGER
+    LANGUAGE 'plpgsql'
+    AS $BODY$
+    DECLARE
+        tmpSQL TEXT;
+    BEGIN
+    tmpSQL := '
+        TRUNCATE TABLE public.active_rentals_summary;
+        INSERT INTO public.active_rentals_summary
+        SELECT (a.customer_id, a.customer_full_name, a.customer_email, a.customer_phone, a,store_id, COUNT(*), now())
+            FROM active_rentals_detail a
+            GROUP BY a.customer_id;
+    ';
+    EXECUTE tmpSQL;
+    END
+    $BODY$;
+
+ALTER FUNCTION public.populate_summary_active_rentals_data()
+    OWNER TO postgres;
+
+DROP TRIGGER IF EXISTS update_active_rentals_summary ON public.active_rentals_detail;
+CREATE TRIGGER update_active_rentals_summary 
+    AFTER UPDATE
+    ON public.active_rentals_detail
+    EXECUTE FUNCTION public.populate_summary_active_rentals_data();
+
+-- B.summary
+
+CREATE TABLE IF NOT EXISTS public.active_rentals_summary(
     customer_id INT NOT NULL PRIMARY KEY,
-    customer_full_name VARCHAR(512),
-    customer_email VARCHAR(255),
-    customer_phone VARCHAR(255),
+    customer_full_name VARCHAR(92),
+    customer_email VARCHAR(50),
+    customer_phone VARCHAR(20),
     store_id INT NOT NULL,
     quantity_active_rentals INT NOT NULL,
-    last_updated DATE NOT NULL,
+    last_updated TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
     FOREIGN KEY (store_id) REFERENCES store(store_id) ON DELETE NO ACTION,
     FOREIGN KEY (customer_id) REFERENCES customer(customer_id) ON DELETE NO ACTION,
     FOREIGN KEY (store_id) REFERENCES store(store_id) ON DELETE NO ACTION
 );
 
+DROP TRIGGER IF EXISTS last_updated ON public.active_rentals_summary;
+CREATE TRIGGER last_updated
+    BEFORE UPDATE 
+    ON public.active_rentals_summary
+    FOR EACH ROW
+    EXECUTE FUNCTION public.last_updated();
 
 
 
+-- D Create transformation function
+CREATE OR REPLACE FUNCTION public.build_full_name(first_name TEXT,last_name TEXT)
+    RETURNS TEXT
+    LANGUAGE 'plpgsql'
+	AS $BODY$
+	DECLARE 
+		full_name TEXT;
+	BEGIN
+	full_name = CONCAT(first_name, " ", last_name);
+	RETURN full_name;
+    END 
+    $BODY$;
+    
+	
+ALTER FUNCTION public.build_full_name(TEXT,TEXT)
+    OWNER TO postgres;
 
 
+-- C extraction query
+
+CREATE OR REPLACE FUNCTION public.find_due_date(start_time TIMESTAMP WITHOUT TIME ZONE, rental_duration INT)
+    RETURNS DATE
+    LANGUAGE 'plpgsql'
+    AS $BODY$
+    DECLARE 
+        due_date DATE;
+        duration TEXT;
+        due_timestamp TIMESTAMP WITHOUT TIME ZONE;
+        due_day INT;
+        due_month INT;
+        due_year INT;
+    BEGIN
+        due_timestamp := start_time + make_interval(days => rental_duration);
+        due_day := extract (DAY FROM due_timestamp);
+        due_month := extract (MONTH FROM due_timestamp);
+        due_year := extract (YEAR FROM due_timestamp);
+        due_date := make_date(due_year, due_month, due_day);
+    RETURN due_date;
+    END
+    $BODY$;
+
+ALTER FUNCTION public.find_due_date(TIMESTAMP WITHOUT TIME ZONE, INT)
+    OWNER TO postgres;
 
 
+CREATE OR REPLACE FUNCTION public.populate_detail_active_rentals_data()
+    RETURNS void
+    LANGUAGE 'plpgsql'
+    AS $BODY$
+    DECLARE
+        tmpSQL TEXT;
+    BEGIN
+    tmpSQL := '
+        INSERT INTO public.active_rentals_detail 
+        SELECT r.rental_id, r.rental_date, f.rental_duration, f.title, i.inventory_id, 
+            find_due_date(r.rental_date, f.rental_duration) as due_date,
+            c.customer_id, build_full_name(c.first_name, c.last_name), a.phone, c.email, i.store_id, now()
+        FROM rental r
+        INNER JOIN customer c on r.customer_id=c.customer_id
+        INNER JOIN inventory i on r.inventory_id=i.inventory_id
+        INNER JOIN film f on i.film_id=f.film_id
+        INNER JOIN address a ON c.address_id=a.address_id
+        
+        ORDER BY r.rental_id asc;
+    ';
+    EXECUTE tmpSQL;
+    END
+    $BODY$;
+
+ALTER FUNCTION public.populate_detail_active_rentals_data()
+    OWNER TO postgres;
 
