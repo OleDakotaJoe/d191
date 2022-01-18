@@ -97,8 +97,6 @@ A stored procedure, `active_rentals_refresh`, will be used for extracting, trans
 
 This procedure should be ran nightly, after close of business, so that data is up to date in the morning, for any stores which need to access it. Additionally, the procedure can be ran, as needed, in the case of alleged discrepancies in the accuracy of data at the time of sale (rental). Any sort of automation tool could be used, whether that be Windows task scheduler, or even a simple java or python application could be used to refresh the data nightly.
 
-E. Write a SQL code that creates a trigger on the detailed table of the report that will continually update the summary table as data is added to the detailed table.
-
 F. Create a stored procedure that can be used to refresh the data in both your detailed and summary tables. The procedure should clear the contents of the detailed and summary tables and perform the ETL load process from part C and include comments that identify how often the stored procedure should be executed.
 
 1.  Explain how the stored procedure can be run on a schedule to ensure data freshness.
