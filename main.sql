@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION public.populate_summary_trigger()
     END
     $BODY$;
 
-ALTER FUNCTION public.populate_summary_active_rentals_data()
+ALTER FUNCTION public.populate_summary_trigger()
     OWNER TO postgres;
 
 CREATE OR REPLACE FUNCTION public.populate_summary_data()
@@ -51,7 +51,7 @@ CREATE OR REPLACE FUNCTION public.populate_summary_data()
     END
     $BODY$;
 
-ALTER FUNCTION public.populate_summary_active_rentals_data()
+ALTER FUNCTION public.populate_summary_data()
     OWNER TO postgres;
 
 DROP TRIGGER IF EXISTS update_active_rentals_summary ON public.active_rentals_detail;
